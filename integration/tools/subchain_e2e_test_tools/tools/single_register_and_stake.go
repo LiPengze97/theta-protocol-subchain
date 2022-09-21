@@ -63,7 +63,7 @@ func DeployTokens() {
 	// fmt.Println("")
 
 	fmt.Printf("Deploying Tokens to the subchain...\n\n")
-	subchainClient, err := ethclient.Dial("http://localhost:19888/rpc")
+	subchainClient, err := ethclient.Dial("http://localhost:19988/rpc")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func subchainSelectAccount(client *ethclient.Client, id int) *bind.TransactOpts 
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
-	chainID := big.NewInt(360777)
+	chainID := big.NewInt(360888)
 	fromAddress := accountList[id].fromAddress
 	privateKey := accountList[id].privateKey
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)

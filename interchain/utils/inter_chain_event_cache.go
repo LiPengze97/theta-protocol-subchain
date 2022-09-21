@@ -60,9 +60,9 @@ func (c *InterChainEventCache) InsertList(events []*score.InterChainMessageEvent
 
 	store := kvstore.NewKVStore(c.db)
 	for _, event := range events {
-		if event.TargetChainID.Cmp(mainchainID) != 0 && event.TargetChainID.Cmp(localchainID) != 0 {
-			continue
-		}
+		// if event.TargetChainID.Cmp(mainchainID) != 0 && event.TargetChainID.Cmp(localchainID) != 0 {
+		// 	continue
+		// }
 		err := store.Put(InterChainEventIndexKey(event.SourceChainID, event.Type, event.Nonce), event)
 		if err != nil {
 			return err // the caller should handle the error

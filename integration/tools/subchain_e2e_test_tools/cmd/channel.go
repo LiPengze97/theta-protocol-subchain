@@ -56,12 +56,20 @@ var startVerifyChannelCmd = &cobra.Command{
 	},
 }
 
+var starttestlockCmd = &cobra.Command{
+	Use: "Testlock",
+	Run: func(cmd *cobra.Command, args []string) {
+		tools.Testlock()
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(startRegisterChannelCmd)
 	rootCmd.AddCommand(startGetMaxProcessedNonceCmd)
 	rootCmd.AddCommand(startGetCrossChainFeeFromRegistrarCmd)
 	rootCmd.AddCommand(startCheckChannelStatusCmd)
 	rootCmd.AddCommand(startVerifyChannelCmd)
+	rootCmd.AddCommand(starttestlockCmd)
 
 	startCheckChannelStatusCmd.PersistentFlags().StringVar(&targetChainID, "tid", "360888", "targetChainID")
 	startCheckChannelStatusCmd.PersistentFlags().StringVar(&targetChainEthRpcClientURL, "turl", "http://localhost:19988/rpc", "targetChainEthRpcClientURL")

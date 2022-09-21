@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -236,6 +237,7 @@ func (oc *Orchestrator) mainloop(ctx context.Context) {
 
 			// Handle subchain channel events
 			oc.processNextSubchainRegisterEvent()
+			oc.processNextSubchainLockEvent()
 		}
 	}
 }
@@ -326,7 +328,9 @@ func (oc *Orchestrator) processNextSubchainRegisterEvent() {
 
 	oc.processNextEvent(nil, common.Big0, score.IMCEInterSubchainChannelRegistered, maxProcessedSubchainRegisteredNonce)
 }
-
+func (oc *Orchestrator) processNextSubchainLockEvent() {
+	oc.processNextEvent(oc.subchainID, big.NewInt(360777), score.IMCEventTypeCrossChainTokenLockTNT20, big.NewInt(3))
+}
 func (oc *Orchestrator) processNextEvent(sourceChainID *big.Int, targetChainID *big.Int, sourceChainEventType score.InterChainMessageEventType, maxProcessedNonce *big.Int) {
 	oc.cleanUpInterChainEventCache(sourceChainID, sourceChainEventType, maxProcessedNonce)
 
@@ -505,15 +509,21 @@ func (oc *Orchestrator) mintTNT20Vouchers(txOpts *bind.TransactOpts, targetChain
 		return ErrDynastyIsNil
 	}
 	if targetChainID.Cmp(big.NewInt(oc.mainchainID.Int64())) != 0 && targetChainID.Cmp(big.NewInt(oc.subchainID.Int64())) != 0 {
-		sidechainTNT20TokenBank, err := scta.NewTNT20TokenBank(oc.subchainTNT20TokenBankAddr, oc.subchainEthRpcClient)
-		if err != nil {
-			logger.Fatalf("failed to set the SubchainTNT20TokenBank contract: %v\n", err)
+		if sidechainClient, ok := oc.interSubchainChannels[targetChainID.String()]; ok {
+			sidechainTNT20TokenBank, err := scta.NewTNT20TokenBank(oc.subchainTNT20TokenBankAddr, sidechainClient)
+			if err != nil {
+				logger.Fatalf("failed to set the SubchainTNT20TokenBank contract: %v\n", err)
+			}
+			tx, err := sidechainTNT20TokenBank.MintVouchers(txOpts, se.Denom, se.Name, se.Symbol, se.Decimals, se.TargetChainVoucherReceiver, se.LockedAmount, dynasty, big.NewInt(1))
+			if err != nil {
+				return err
+			}
+			fmt.Println(tx.Hash().Hex())
+			return nil
+		} else {
+			logger.Fatalf("failed to get the sidechain client")
 		}
-		_, err = sidechainTNT20TokenBank.MintVouchers(txOpts, se.Denom, se.Name, se.Symbol, se.Decimals, se.TargetChainVoucherReceiver, se.LockedAmount, dynasty, se.TokenLockNonce)
-		if err != nil {
-			return err
-		}
-		return nil
+
 	}
 	TNT20TokenBank := oc.getTNT20TokenBank(targetChainID)
 	_, err = TNT20TokenBank.MintVouchers(txOpts, se.Denom, se.Name, se.Symbol, se.Decimals, se.TargetChainVoucherReceiver, se.LockedAmount, dynasty, se.TokenLockNonce)
@@ -644,7 +654,7 @@ func (oc *Orchestrator) getEthRpcClient(chainID *big.Int) *ec.Client {
 	} else if chainID.Cmp(oc.subchainID) == 0 {
 		return oc.subchainEthRpcClient
 	} else {
-		return oc.interSubchainChannels["tsub"+chainID.String()] //FIX
+		return oc.interSubchainChannels[chainID.String()] //FIX
 	}
 }
 
